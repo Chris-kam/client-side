@@ -19,16 +19,19 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
 
-  const [formState, inputHandler, setFormData] = useForm({
-    email: {
-      value: "",
-      isValid: false,
+  const [formState, inputHandler, setFormData] = useForm(
+    {
+      email: {
+        value: "",
+        isValid: false,
+      },
+      password: {
+        value: "",
+        isValid: false,
+      }
     },
-    password: {
-      value: "",
-      isValid: false,
-    },
-  });
+    false
+  );
 
   const switchModeHandler = () => {
     if (!isLoginMode) {
@@ -45,9 +48,9 @@ const Auth = () => {
           ...formState.inputs,
           name: {
             value: "",
-            isValid: false,
-          },
-        },
+            isValid: false
+          }
+        },[]
         false
       );
     }
@@ -56,11 +59,35 @@ const Auth = () => {
 
   const authSubmitHandler = async event => {
     event.preventDefault();
-
+    setIsLoading(true);
     if (isLoginMode) {
+      try {
+        const response = await fetch('http://localhost:5000/api/users/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: formState.inputs.email.value,
+            password: formState.inputs.password.value,
+
+          })
+        });
+
+        const responseData = await response.json();
+        if (!response.ok) {
+          throw new Error(responseData.message);
+        }
+
+        setIsLoading(false);
+        auth.login();
+      } catch (err) {
+        console.log(err);
+        setIsLoading(false);
+        setError(err.message || 'Something went wrong, try again.')
+      }
     } else {
       try {
-          //  setIsLoading(true);
         const response = await fetch('http://localhost:5000/api/users/signup', {
           method: 'POST',
           headers: {
@@ -69,25 +96,28 @@ const Auth = () => {
           body: JSON.stringify({
             name: formState.inputs.name.value,
             email: formState.inputs.email.value,
-            password: formState.inputs.password.value
+            password: formState.inputs.password.value,
+
           })
         });
 
         const responseData = await response.json();
-        console.log(responseData);
-     //    setIsLoading(false);
-        
+        if (!response.ok) {
+          throw new Error(responseData.message);
+        }
+        setIsLoading(false);
+        auth.login();
       } catch (err) {
         console.log(err);
-     //    setIsLoading(false);
-     //    setError(err.message || 'Something went wrong, try again.')
+        setIsLoading(false);
+        setError(err.message || 'Something went wrong, try again.')
       }
     }
-    auth.login();
+
   };
   return (
     <Card className="authentication">
-      { isLoading && <LoadingSpinner asOverlay/> }
+      {isLoading && <LoadingSpinner asOverlay />}
       <h2>Login Required</h2>
       <hr />
       <form onSubmit={authSubmitHandler}>
@@ -116,8 +146,8 @@ const Auth = () => {
           id="password"
           type="password"
           label="Password"
-          validators={[VALIDATOR_MINLENGTH(5)]}
-          errorText="Please enter a valid password, at least 5 characters."
+          validators={[VALIDATOR_MINLENGTH(6)]}
+          errorText="Please enter a valid password, at least 6 characters."
           onInput={inputHandler}
         />
         {/* disabled={!formState.isValid} */}
